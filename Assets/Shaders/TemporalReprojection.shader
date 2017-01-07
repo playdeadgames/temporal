@@ -511,7 +511,7 @@ Shader "Playdead/Post/TemporalReprojection"
 
 			#pragma vertex vert
 			#pragma fragment frag
-			#pragma only_renderers ps4 xboxone d3d11 d3d9 xbox360 opengl
+			#pragma only_renderers ps4 xboxone d3d11 d3d9 xbox360 opengl glcore
 			#pragma target 3.0
 			#pragma glsl
 			
