@@ -28,13 +28,14 @@ Shader "Playdead/Post/TemporalReprojection"
 
 	static const float FLT_EPS = 0.00000001f;
 
-	uniform float4x4 _CameraToWorld;
 	uniform sampler2D _CameraDepthTexture;
 	uniform float4 _CameraDepthTexture_TexelSize;
 
 	uniform sampler2D _MainTex;
 	uniform float4 _MainTex_TexelSize;
-
+	#if UNITY_VERSION >= 540
+	half4 _MainTex_ST;
+	#endif
 	uniform sampler2D _VelocityBuffer;
 	uniform sampler2D _VelocityNeighborMax;
 
@@ -56,10 +57,16 @@ Shader "Playdead/Post/TemporalReprojection"
 	v2f vert(appdata_img IN)
 	{
 		v2f OUT;
-
-		OUT.cs_pos = mul(UNITY_MATRIX_MVP, IN.vertex);
-		OUT.ss_txc = IN.texcoord.xy;
-		OUT.vs_ray = (2.0 * IN.texcoord.xy - 1.0) * _Corner.xy;
+		#if UNITY_VERSION >= 540 //Matrix handling was changed in 5.4 and a Unity method was implemented for dealing with difference and VR
+			OUT.cs_pos = UnityObjectToClipPos(IN.vertex);
+			float2 UV = UnityStereoScreenSpaceUVAdjust(IN.texcoord.xy, _MainTex_ST);
+			OUT.ss_txc = UV;
+			OUT.vs_ray = (2.0 * UV - 1.0) * _Corner.xy;
+		#else
+			OUT.cs_pos = mul(UNITY_MATRIX_MVP, IN.vertex);
+			OUT.ss_txc = IN.texcoord.xy;
+			OUT.vs_ray = (2.0 * IN.texcoord.xy - 1.0) * _Corner.xy;
+		#endif
 		
 		return OUT;
 	}
