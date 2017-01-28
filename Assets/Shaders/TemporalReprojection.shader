@@ -33,7 +33,9 @@ Shader "Playdead/Post/TemporalReprojection"
 
 	uniform sampler2D _MainTex;
 	uniform float4 _MainTex_TexelSize;
-
+	#if UNITY_VERSION >= 540
+	half4 _MainTex_ST;
+	#endif
 	uniform sampler2D _VelocityBuffer;
 	uniform sampler2D _VelocityNeighborMax;
 
@@ -57,11 +59,14 @@ Shader "Playdead/Post/TemporalReprojection"
 		v2f OUT;
 		#if UNITY_VERSION >= 540 //Matrix handling was changed in 5.4 and a Unity method was implemented for dealing with difference and VR
 			OUT.cs_pos = UnityObjectToClipPos(IN.vertex);
+			float2 UV = UnityStereoScreenSpaceUVAdjust(IN.texcoord.xy, _MainTex_ST);
+			OUT.ss_txc = UV;
+			OUT.vs_ray = (2.0 * UV - 1.0) * _Corner.xy;
 		#else
 			OUT.cs_pos = mul(UNITY_MATRIX_MVP, IN.vertex);
+			OUT.ss_txc = IN.texcoord.xy;
+			OUT.vs_ray = (2.0 * IN.texcoord.xy - 1.0) * _Corner.xy;
 		#endif
-		OUT.ss_txc = IN.texcoord.xy;
-		OUT.vs_ray = (2.0 * IN.texcoord.xy - 1.0) * _Corner.xy;
 		
 		return OUT;
 	}

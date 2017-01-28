@@ -3,7 +3,6 @@
 // AUTHOR: Lasse Jon Fuglsang Pedersen <lasse@playdead.com>
 Shader "Playdead/Post/VelocityBuffer"
 {
-
 	CGINCLUDE
 	//--- program begin
 	#pragma multi_compile __ TILESIZE_10 TILESIZE_20 TILESIZE_40 UNITY_SHADER_NO_UPGRADE
@@ -40,12 +39,14 @@ Shader "Playdead/Post/VelocityBuffer"
 
 		#if UNITY_VERSION < 540 //Matrix handling was changed in 5.4 and a Unity method was implemented for dealing with difference and VR
 			OUT.cs_pos = mul(UNITY_MATRIX_MVP, IN.vertex);
+			OUT.ss_txc = IN.texcoord.xy;
+			OUT.vs_ray = (2.0 * IN.texcoord.xy - 1.0) * _Corner.xy + _Corner.zw;
 		#else
 			OUT.cs_pos = UnityObjectToClipPos(IN.vertex);
+			float2 UV = UnityStereoScreenSpaceUVAdjust(IN.texcoord.xy, _MainTex_ST);
+			OUT.ss_txc = UV;
+			OUT.vs_ray = (2.0 * UV - 1.0) * _Corner.xy + _Corner.zw;
 		#endif
-
-		OUT.ss_txc = IN.texcoord.xy;
-		OUT.vs_ray = (2.0 * IN.texcoord.xy - 1.0) * _Corner.xy + _Corner.zw;
 
 		return OUT;
 	}
