@@ -52,12 +52,23 @@ public class TemporalReprojection : EffectBase
         _jitter = GetComponent<FrustumJitter>();
         _velocity = GetComponent<VelocityBuffer>();
     }
+	//Make it simpler to Enable/Disable the whole effect
+	void OnDisable()
+	{
+		_jitter.enabled = false;
+		_velocity.enabled = false;
+	}
+	void OnEnable()
+	{
+		_jitter.enabled = true;
+		_velocity.enabled = true;
+	}
 
     void Resolve(RenderTexture source, RenderTexture destination)
     {
         EnsureMaterial(ref reprojectionMaterial, reprojectionShader);
 
-        if (_camera.orthographic || _camera.depthTextureMode == DepthTextureMode.None || reprojectionMaterial == null)
+        if ( _camera.depthTextureMode == DepthTextureMode.None || reprojectionMaterial == null)
         {
             Graphics.Blit(source, destination);
             if (_camera.depthTextureMode == DepthTextureMode.None)
@@ -134,7 +145,6 @@ public class TemporalReprojection : EffectBase
             reprojectionIndex = indexWrite;
         }
     }
-
     void OnRenderImage(RenderTexture source, RenderTexture destination)
     {
         if (destination != null)// resolve without additional blit when not end of chain

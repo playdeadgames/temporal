@@ -1,17 +1,16 @@
 ﻿// Copyright (c) <2015> <Playdead>
 // This file is subject to the MIT License as seen in the root of this folder structure (LICENSE.TXT)
 // AUTHOR: Lasse Jon Fuglsang Pedersen <lasse@playdead.com>
-
 Shader "Playdead/Post/VelocityBuffer"
 {
 	CGINCLUDE
 	//--- program begin
-
 	#pragma multi_compile __ TILESIZE_10 TILESIZE_20 TILESIZE_40
-
+	#pragma multi_compile UNITY_SHADER_NO_UPGRADE
 	#include "UnityCG.cginc"
-
-	uniform float4x4 _CameraToWorld;
+	#if UNITY_VERSION < 540 //Replaced with built-in "unity_CameraToWorld" in 5.4+
+		uniform float4x4 _CameraToWorld;
+	#endif
 	uniform sampler2D _CameraDepthTexture;
 	uniform float4 _CameraDepthTexture_TexelSize;
 
@@ -38,9 +37,16 @@ Shader "Playdead/Post/VelocityBuffer"
 	{
 		blit_v2f OUT;
 
-		OUT.cs_pos = mul(UNITY_MATRIX_MVP, IN.vertex);
-		OUT.ss_txc = IN.texcoord.xy;
-		OUT.vs_ray = (2.0 * IN.texcoord.xy - 1.0) * _Corner.xy + _Corner.zw;
+		#if UNITY_VERSION < 540 //Matrix handling was changed in 5.4 and a Unity method was implemented for dealing with difference and VR
+			OUT.cs_pos = mul(UNITY_MATRIX_MVP, IN.vertex);
+			OUT.ss_txc = IN.texcoord.xy;
+			OUT.vs_ray = (2.0 * IN.texcoord.xy - 1.0) * _Corner.xy + _Corner.zw;
+		#else
+			OUT.cs_pos = UnityObjectToClipPos(IN.vertex);
+			float2 UV = UnityStereoScreenSpaceUVAdjust(IN.texcoord.xy, _MainTex_ST);
+			OUT.ss_txc = UV;
+			OUT.vs_ray = (2.0 * UV - 1.0) * _Corner.xy + _Corner.zw;
+		#endif
 
 		return OUT;
 	}
@@ -50,7 +56,12 @@ Shader "Playdead/Post/VelocityBuffer"
 		// reconstruct world position
 		float vs_dist = LinearEyeDepth(tex2D(_CameraDepthTexture, IN.ss_txc).x);
 		float3 vs_pos = float3(IN.vs_ray, 1.0) * vs_dist;
-		float4 ws_pos = mul(_CameraToWorld, float4(vs_pos, 1.0));
+
+		#if UNITY_VERSION < 540
+			float4 ws_pos = mul(_CameraToWorld, float4(vs_pos, 1.0));
+		#else
+			float4 ws_pos = mul(unity_CameraToWorld, float4(vs_pos, 1.0));
+		#endif
 
 		//// NOTE: world space debug at 3D crane
 		//return 0.1 * float4(ws_pos.xy - float2(595.0, -215.0), 0.0, 0.0);
@@ -66,19 +77,19 @@ Shader "Playdead/Post/VelocityBuffer"
 		// output
 		return float4(ss_vel, 0.0, 0.0);
 	}
-
-	float4 blit_frag_tilemax( blit_v2f IN ) : SV_Target
-	{
-	#if TILE_SIZE_10
+	
+	#if TILESIZE_10
 		const int support = 10;
-	#elif TILE_SIZE_20
+	#elif TILESIZE_20
 		const int support = 20;
-	#elif TILE_SIZE_40
+	#elif TILESIZE_40
 		const int support = 40;
 	#else
 		const int support = 1;
 	#endif
-
+	
+	float4 blit_frag_tilemax( blit_v2f IN ) : SV_Target
+	{
 		const float2 step = _VelocityTex_TexelSize.xy;
 		const float2 base = IN.ss_txc + (0.5 - 0.5 * support) * step;
 		const float2 du = float2(_VelocityTex_TexelSize.x, 0.0);
@@ -198,7 +209,7 @@ Shader "Playdead/Post/VelocityBuffer"
 
 			#pragma vertex blit_vert
 			#pragma fragment blit_frag_prepass
-			#pragma only_renderers ps4 xboxone d3d11 d3d9 xbox360 opengl
+			#pragma only_renderers ps4 xboxone d3d11 d3d9 xbox360 opengl glcore vulkan metal
 			#pragma target 3.0
 			#pragma glsl
 
@@ -215,7 +226,7 @@ Shader "Playdead/Post/VelocityBuffer"
 
 			#pragma vertex vert
 			#pragma fragment frag
-			#pragma only_renderers ps4 xboxone d3d11 d3d9 xbox360 opengl
+			#pragma only_renderers ps4 xboxone d3d11 d3d9 xbox360 opengl glcore vulkan metal
 			#pragma target 3.0
 			#pragma glsl
 
@@ -232,7 +243,7 @@ Shader "Playdead/Post/VelocityBuffer"
 
 			#pragma vertex vert_skinned
 			#pragma fragment frag
-			#pragma only_renderers ps4 xboxone d3d11 d3d9 xbox360 opengl
+			#pragma only_renderers ps4 xboxone d3d11 d3d9 xbox360 opengl glcore vulkan metal
 			#pragma target 3.0
 			#pragma glsl
 
@@ -249,7 +260,7 @@ Shader "Playdead/Post/VelocityBuffer"
 
 			#pragma vertex blit_vert
 			#pragma fragment blit_frag_tilemax
-			#pragma only_renderers ps4 xboxone d3d11 d3d9 xbox360 opengl
+			#pragma only_renderers ps4 xboxone d3d11 d3d9 xbox360 opengl glcore vulkan metal
 			#pragma target 3.0
 			#pragma glsl
 
@@ -266,13 +277,15 @@ Shader "Playdead/Post/VelocityBuffer"
 
 			#pragma vertex blit_vert
 			#pragma fragment blit_frag_neighbormax
-			#pragma only_renderers ps4 xboxone d3d11 d3d9 xbox360 opengl
+			#pragma only_renderers ps4 xboxone d3d11 d3d9 xbox360 opengl glcore vulkan metal
 			#pragma target 3.0
 			#pragma glsl
 
 			ENDCG
+
 		}
 	}
 
 	Fallback Off
 }
+
