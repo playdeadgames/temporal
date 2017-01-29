@@ -221,7 +221,7 @@ public class FrustumJitter : MonoBehaviour
 
     private Vector3 focalMotionPos = Vector3.zero;
     private Vector3 focalMotionDir = Vector3.right;
-
+    private Camera camera;
     public Pattern pattern = Pattern.Halton_2_3_X16;
     public float patternScale = 1f;
 
@@ -243,10 +243,18 @@ public class FrustumJitter : MonoBehaviour
             return new Vector2(x, y).Rotate(Vector2.right.SignedAngle(focalMotionDir));
     }
 
+	void Awake()
+	{
+		camera = GetComponent<Camera>();
+	}
+
     void OnPreCull()
     {
-        var camera = GetComponent<Camera>();
-        if (camera != null && camera.orthographic == false)
+		if(camera == null) { //Don't GetComponent every frame, it's inefficient.
+			camera = GetComponent<Camera>();
+		}
+
+        if (camera != null)
         {
             // update motion dir
             {
@@ -281,7 +289,8 @@ public class FrustumJitter : MonoBehaviour
                 activeSample.x = sample.x;
                 activeSample.y = sample.y;
 
-                camera.projectionMatrix = camera.GetPerspectiveProjection(sample.x, sample.y);
+                camera.projectionMatrix = (camera.orthographic) ? camera.GetOrthographicProjection(sample.x, sample.y) : 
+                                                                  camera.GetPerspectiveProjection(sample.x, sample.y);
             }
         }
         else

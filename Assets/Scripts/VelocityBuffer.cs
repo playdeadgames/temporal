@@ -28,6 +28,7 @@ public class VelocityBuffer : EffectBase
 
     public enum NeighborMaxSupport
     {
+		TileSize1,
         TileSize10,
         TileSize20,
         TileSize40,
@@ -59,7 +60,7 @@ public class VelocityBuffer : EffectBase
     {
         EnsureMaterial(ref velocityMaterial, velocityShader);
 
-        if (_camera.orthographic || _camera.depthTextureMode == DepthTextureMode.None || velocityMaterial == null)
+        if (_camera.depthTextureMode == DepthTextureMode.None || velocityMaterial == null)
         {
             if (_camera.depthTextureMode == DepthTextureMode.None)
                 _camera.depthTextureMode = DepthTextureMode.Depth;
@@ -73,7 +74,6 @@ public class VelocityBuffer : EffectBase
         int bufferH = _camera.pixelHeight;
 
         EnsureRenderTarget(ref velocityBuffer, bufferW, bufferH, velocityFormat, FilterMode.Point, 16);
-
         EnsureKeyword(velocityMaterial, "TILESIZE_10", neighborMaxSupport == NeighborMaxSupport.TileSize10);
         EnsureKeyword(velocityMaterial, "TILESIZE_20", neighborMaxSupport == NeighborMaxSupport.TileSize20);
         EnsureKeyword(velocityMaterial, "TILESIZE_40", neighborMaxSupport == NeighborMaxSupport.TileSize40);

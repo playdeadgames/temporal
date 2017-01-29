@@ -11,50 +11,57 @@ public class VelocityBufferTag : MonoBehaviour
 {
     public static List<VelocityBufferTag> activeObjects = new List<VelocityBufferTag>(128);
 
-    [NonSerialized, HideInInspector] public Mesh mesh;
-    [NonSerialized, HideInInspector] public Matrix4x4 localToWorldPrev;
-    [NonSerialized, HideInInspector] public Matrix4x4 localToWorldCurr;
+    [NonSerialized, HideInInspector] internal Mesh mesh;
+    [NonSerialized, HideInInspector] internal Matrix4x4 localToWorldPrev;
+    [NonSerialized, HideInInspector] internal Matrix4x4 localToWorldCurr;
 
     private SkinnedMeshRenderer skinnedMesh = null;
-    public bool useSkinnedMesh = false;
+	[SerializeField] internal bool useSkinnedMesh = false;
 
-    public const int framesNotRenderedThreshold = 60;
+    internal const int framesNotRenderedThreshold = 60;
     private int framesNotRendered = framesNotRenderedThreshold;
 
-    [NonSerialized] public bool sleeping = false;
+    [NonSerialized] internal bool sleeping = false;
 
     void Start()
     {
-        if (useSkinnedMesh)
-        {
-            var smr = this.GetComponent<SkinnedMeshRenderer>();
-            if (smr != null)
-            {
-                mesh = new Mesh();
-                skinnedMesh = smr;
-                skinnedMesh.BakeMesh(mesh);
-            }
-        }
-        else
-        {
-            var mf = this.GetComponent<MeshFilter>();
-            if (mf != null)
-            {
-                mesh = mf.sharedMesh;
-            }
-        }
-
-        localToWorldCurr = transform.localToWorldMatrix;
-        localToWorldPrev = localToWorldCurr;
+		Initialize();
     }
 
+	void Initialize()
+	{
+		if (useSkinnedMesh)
+		{
+			var smr = this.GetComponent<SkinnedMeshRenderer>();
+			if (smr != null)
+			{
+				mesh = new Mesh();
+				skinnedMesh = smr;
+				skinnedMesh.BakeMesh(mesh);
+			}
+		}
+		else
+		{
+			var mf = this.GetComponent<MeshFilter>();
+			if (mf != null)
+			{
+				mesh = mf.sharedMesh;
+			}
+		}
+
+		localToWorldCurr = transform.localToWorldMatrix;
+		localToWorldPrev = localToWorldCurr;
+	}
     void VelocityUpdate()
     {
         if (useSkinnedMesh)
         {
             if (skinnedMesh == null)
             {
-                Debug.LogWarning("vbuf skinnedMesh not set", this);
+                Debug.LogWarning("vbuf skinnedMesh not set, switching to regular mode", this);
+				useSkinnedMesh = false; //Fallback to avoid constant spamming of the messag
+				Initialize(); //Reinitialize with the normal mesh route
+				VelocityUpdate(); //Call this function back again to skip waiting another frame, can't cause loop since useSkinnedMesh set false.
                 return;
             }
 
