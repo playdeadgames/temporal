@@ -168,7 +168,7 @@ Shader "Playdead/Post/VelocityBuffer"
 	float4 frag( v2f IN ) : SV_Target
 	{
 		float2 ss_txc = IN.ss_pos.xy / IN.ss_pos.w;
-		float scene_z = tex2D(_CameraDepthTexture, ss_txc).x;
+		float scene_z = -tex2D(_CameraDepthTexture, ss_txc).x;
 		float scene_d = LinearEyeDepth(scene_z);
 		const float occlusion_bias = 0.03;
 
