@@ -149,9 +149,9 @@ public class TemporalReprojection : EffectBase
             mrt[0] = reprojectionBuffer[eyeIndex, indexWrite].colorBuffer;
             mrt[1] = destination.colorBuffer;
 
+            reprojectionBuffer[eyeIndex, indexWrite].DiscardContents();
             Graphics.SetRenderTarget(mrt, source.depthBuffer);
             reprojectionMaterial.SetPass(0);
-            reprojectionBuffer[eyeIndex, indexWrite].DiscardContents();
 
             DrawFullscreenQuad();
 
